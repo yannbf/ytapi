@@ -1,5 +1,6 @@
 # ytapi
-Simple javascript framework for youtube api integration. 
+
+A javascript framework for youtube api integration. 
 =============== 
 
 A simple javascript wrapper for the Youtube Data API v3.
