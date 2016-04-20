@@ -66,11 +66,11 @@ yt_api.prototype = {
 
 	setChannelId: function(channelId){
 		this.channelId = channelId;
-	}
-}
+	},
 
-// GET
-yt_api.prototype = { 
+	setFavoritesPlaylistId: function(favoritesPlaylistId){ 
+		this.favoritesPlaylistId = favoritesPlaylistId;
+	},
 
 	getLikes: function (videoId) {
 		return gapi.client.request({
@@ -81,6 +81,35 @@ yt_api.prototype = {
 	    }); 
 	},
 
+	handleClientLoad: function (callbackFunction){
+	    gapi.client.setApiKey(this.apiKey);
+	    window.setTimeout(callbackFunction, 1);	
+	},
+
+	authenticate: function (immediate, clientId, scope, callbackFunction){
+		console.log(immediate);
+		console.log(clientId);
+		console.log(scope);
+	    return gapi.auth.authorize({
+	        client_id: clientId,
+	        scope: scope,
+	        immediate: immediate
+	    }, callbackFunction);
+	},
+
+	//Rates a video. Rating type -> like, dislike, none
+	rateVideo: function(videoId, ratingType){
+		return gapi.client.request({
+            path: '/youtube/v3/videos/rate',
+            method: 'POST',
+            params: {
+                'id': videoId,
+                'rating': ratingType
+            }
+        });
+	},
+
+	// Retrieve videos from a given playlistId
 	retrieveVideos: function (playlistId, maxNumberOfVideos, nextPageToken){   
 	    return gapi.client.request({
             path: '/youtube/v3/playlistItems',
@@ -91,5 +120,111 @@ yt_api.prototype = {
                 'nextPageToken' : nextPageToken
             }
         });
-	}
+	},
+
+	// Creates a playlist for the user's account.
+	createPlaylist: function(title){
+		return gapi.client.request({
+            path: '/youtube/v3/playlists',
+            method: 'POST',
+            params: {
+                'part': 'snippet'
+            },
+            body:{
+                'snippet': {
+                    'title': title
+                }
+            }
+        });
+	},
+
+	// Lists all videos from favorites playlist
+	getFavoriteVideos: function () {  
+	    return gapi.client.request({
+	        path: '/youtube/v3/playlistItems',
+	        params: {
+	            'part': 'id, snippet', 
+	            'playlistId': this.favoritePlaylistId
+	        }
+	    });
+	},
+
+	// Adds a given video to favorites playlist
+	addVideoToFavorites: function(videoId) {
+		return gapi.client.request({
+            path: '/youtube/v3/playlistItems',
+            method: 'POST',
+            params: {
+                "part": "id, snippet",
+            },
+            body: {
+                "snippet": {
+                    "playlistId": this.favoritesPlaylistId,
+                    "resourceId": {
+                      "kind": "youtube#video",
+                      "videoId": videoId,
+                    }
+                }
+            }
+        });
+	},
+
+	// Note that whenever a video is in a playlist, it has its own playlistItemId. This method DOES NOT use videoId.
+	removeVideoFromFavorites: function(playlistItemId) {
+		return gapi.client.request({
+            path: '/youtube/v3/playlistItems',
+            method: 'DELETE', 
+            params: {
+                "part": "id, snippet",  
+                "id": playlistItemId 
+            } 
+        });
+	},
+
+	loadFavoritesPlaylistId: function () {    
+        gapi.client.request({
+            path: '/youtube/v3/channels', 
+            params: {
+                'part': 'id, snippet, contentDetails',
+                'mine': true
+            }
+        }).then(function(resp) {  
+            favoritePlaylistId = resp.result.items[0].contentDetails.relatedPlaylists.favorites;
+            this.favoritesPlaylistId = favoritePlaylistId;
+        },function(err) {
+            console.log("YTAPI: There was an unexpected error: " + err);
+        }); 
+    },
+
+    listComments: function(videoId) {
+    	return gapi.client.request({
+	        path: '/youtube/v3/commentThreads',
+	        params: {
+	            'part': 'id, replies, snippet',
+	            'videoId': videoId,
+	            'order': 'time'
+	        }
+	    });
+    },
+
+    postComment: function(videoId, commentText) {
+    	return gapi.client.request({
+	        path: '/youtube/v3/commentThreads',
+	        method: 'POST',
+	        params: {
+	            "part": "id, snippet",
+	        },
+	        body: {
+	            "snippet": {
+	                "channelId": this.channelId,
+	                "videoId": videoId,
+	                "topLevelComment": {
+	                    "snippet": {
+	                        "textOriginal": commentText,
+	                    }
+	                }
+	            }
+	        }
+	    });
+    }
 };
