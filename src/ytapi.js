@@ -10,6 +10,11 @@
 
 function yt_api(apiKey, clientId) {
 
+	var tag = document.createElement('script'); 
+	tag.src = "https://apis.google.com/js/client.js";
+	var firstScriptTag = document.getElementsByTagName('script')[0];
+	firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
 	// About object is returned if there is no 'id' parameter
 	var about = {
 		Version: 0.1,
